@@ -4,7 +4,7 @@ set -euo pipefail
 echo "Test: Vicinae is configured as default launcher"
 
 # hyprland config should contain the Vicinae binding
-if ! grep -q "SUPER, SPACE, exec, vicinae" home/desktop/hyprland.nix; then
+if ! grep -q "SUPER, Tab, exec, vicinae toggle" home/desktop/hyprland.nix; then
   echo "hyprland keybind for vicinae not found"; exit 1
 fi
 

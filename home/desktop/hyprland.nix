@@ -20,12 +20,18 @@
         kb_variant = "abnt2";
       };
 
+      exec = [
+        "vicinae server &"
+      ];
+
       bind = [
+
+        "SUPER, Tab, exec, sh -c 'vicinae toggle; hyprctl dispatch movecursor 960 540'"
+
         "SUPER, Q, killactive"
         "SUPER, T, exec, kitty"
         "SUPER, W, exec, microsoft-edge"
         "SUPER, C, exec, code"
-        "SUPER, SPACE, exec, vicinae"
         "SUPER, Esc, exit"
 
         # Workspace switching (SUPER + number)
