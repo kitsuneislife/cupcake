@@ -10,7 +10,12 @@ jobs:
       - name: Install Nix (for flakes)
         uses: cachix/install-nix-action@v22
         with:
+          # require a modern Nix (GitHub runners ship older versions)
+          nix_version: '2.18.1'
           extra_nix_config: 'experimental-features = nix-command flakes'
+
+      - name: Show Nix version
+        run: nix --version
       - name: Run flake check
         run: nix flake check
       - name: Run duplicate-package check
