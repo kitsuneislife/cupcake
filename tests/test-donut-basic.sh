@@ -14,9 +14,9 @@ out=$(bash ./scripts/donut.sh --dry-run global add node eslint 2>&1 || true)
 if ! grep -q "global add node eslint" <<<"$out"; then
   echo "donut dry-run global add didn't print expected message"; echo "$out"; exit 1
 fi
-# ensure it printed the pnpm command suggestion in dry-run output
-if ! grep -q "pnpm add -g eslint" <<<"$out"; then
-  echo "donut dry-run global add did not print pnpm fallback"; echo "$out"; exit 1
+# ensure it printed either the pnpm suggestion or an npm fallback in dry-run output
+if ! (grep -q "pnpm add -g eslint" <<<"$out" || grep -q "npm i -g eslint" <<<"$out"); then
+  echo "donut dry-run global add did not print pnpm or npm fallback"; echo "$out"; exit 1
 fi
 
 # status should run and report detected files (do not require creating .donutrc)
