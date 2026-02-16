@@ -27,6 +27,8 @@ Flags úteis
 - `--git` — commit automático do ficheiro alterado.
 - `--force` — ignora marcação `MANAGED BY:` e força a alteração.
 - `--no-learn` — não persiste escolha em `package-hints.nix`.
+- `--no-validate` — pula validação de pacote (útil para overlays / pacotes locais).
+- `--validate-strict` — validação estrita (tenta `nix build` do atributo encontrado; pode ser lenta).
 - `--assume-home` / `--assume-system` — define destino sem prompt e grava (quando aplicável).
 - `--yes` — assume escolha definida por `--assume-*` sem confirmar.
 

@@ -8,16 +8,21 @@ set -euo pipefail
 # Allow optional global flags before the command
 DRY_RUN=0
 AUTO_COMMIT=0
+# validation behavior (default: quick validation enabled)
+VALIDATE=1
+VALIDATE_STRICT=0
 while [[ "${1-}" == --* ]]; do
   case "$1" in
     --dry-run) DRY_RUN=1; shift ;;
     --git) AUTO_COMMIT=1; shift ;;
     --force) FORCE=1; shift ;;
     --no-learn) NO_LEARN=1; shift ;;
+    --no-validate) VALIDATE=0; shift ;;
+    --validate-strict) VALIDATE_STRICT=1; VALIDATE=1; shift ;;
     --assume-home) ASSUME=home; ASSUME_YES=1; shift ;;
     --assume-system) ASSUME=system; ASSUME_YES=1; shift ;;
     --yes) ASSUME_YES=1; shift ;;
-    --help) echo "Usage: eclair [--dry-run] [--git] [--force] [--no-learn] [--assume-home|--assume-system] <command> [arg]"; exit 0 ;;
+    --help) echo "Usage: eclair [--dry-run] [--git] [--force] [--no-learn] [--no-validate] [--validate-strict] [--assume-home|--assume-system] <command> [arg]"; exit 0 ;;
     *) echo "Unknown flag: $1"; exit 1 ;;
   esac
 done
@@ -178,6 +183,81 @@ save_hint() {
 # heuristics: quick lists
 likely_system=(docker docker-compose podman containerd nginx postgresql postgres mysql mariadb redis rabbitmq qemu virtualbox libvirt wireguard openvpn)
 likely_home=(neovim vim tmux kitty alacritty alacritty-terminfo ripgrep rg fd bat git vscode code microsoft-edge discord firefox slack spotify)
+
+# --- package lint/validation helpers ---
+lint_package() {
+  local pkg="$1"
+  # basic name lint
+  if ! [[ "$pkg" =~ ^[a-zA-Z0-9_+@.\-]+$ ]]; then
+    warn "Package name '$pkg' contains unusual characters"
+  fi
+
+  # skip validation if disabled
+  if [[ ${VALIDATE-0} -eq 0 ]]; then
+    return 0
+  fi
+
+  # run a quick nix search
+  local out
+  out=$(nix search nixpkgs "$pkg" 2>/dev/null || true)
+  if [[ -z "$out" ]]; then
+    if [[ -t 0 && -t 1 ]]; then
+      echo "No matches found for '$pkg' in nixpkgs. Continue anyway? (y/N)"
+      read -r ans
+      case "$ans" in
+        y|Y) return 0;;
+        *) error "Package validation failed: no matches for '$pkg'"; return 2;;
+      esac
+    else
+      error "No matches for '$pkg' in nixpkgs. Use --no-validate to skip."; return 2
+    fi
+  fi
+
+  # parse first column as attribute/name for suggestions
+  mapfile -t lines < <(printf "%s\n" "$out" | sed '/^$/d' | sed -n '1,8p')
+  # extract attribute names (first token)
+  declare -a attrs
+  for l in "${lines[@]}"; do
+    a=$(echo "$l" | awk '{print $1}')
+    attrs+=("$a")
+  done
+
+  # look for exact match
+  for a in "${attrs[@]}"; do
+    if [[ "$a" == "$pkg" ]]; then
+      PKG_ATTR="$a"; return 0
+    fi
+  done
+
+  # if only one suggestion, accept it
+  if [[ ${#attrs[@]} -eq 1 ]]; then
+    PKG_ATTR="${attrs[0]}"; return 0
+  fi
+
+  # multiple suggestions — interactive or abort
+  if [[ -t 0 && -t 1 ]]; then
+    echo "Multiple matches found for '$pkg' — choose one (or 0 to cancel):"
+    local i=1
+    for l in "${lines[@]}"; do
+      echo "  $i) $l"
+      i=$((i+1))
+    done
+    echo "  0) cancel"
+    read -rp "> " choice
+    if [[ "$choice" =~ ^[0-9]+$ ]] && (( choice>0 && choice<=$((i-1)) )); then
+      PKG_ATTR="${attrs[$((choice-1))]}"
+      # remember the exact mapping optionally
+      if [[ ${NO_LEARN-0} -ne 1 ]]; then
+        save_hint "$pkg" "home"
+      fi
+      return 0
+    fi
+    error "Aborted by user"; return 2
+  else
+    echo "Multiple matches for '$pkg':"; printf '%s\n' "${lines[@]}"
+    error "Ambiguous package name; run interactively or use --no-validate to skip validation."; return 2
+  fi
+}
 
 decide_target() {
   local pkg="$1"
@@ -365,7 +445,11 @@ if [[ "$COMMAND" == "install" || "$COMMAND" == "remove" ]]; then
     if [[ -z "$FEATURE" ]]; then error "Missing package name"; fi
 
     if [[ $DRY_RUN -eq 1 ]]; then
-      info "(dry-run) would $COMMAND '$FEATURE'"
+      # run validation/lint in dry-run mode so users see validation results
+      if [[ ${VALIDATE-0} -ne 0 ]]; then
+        lint_package "$FEATURE" || true
+      fi
+      info "(dry-run) would $COMMAND '$FEATURE' (no files changed)"
       exit 0
     fi
 
@@ -417,6 +501,20 @@ if [[ "$COMMAND" == "install" || "$COMMAND" == "remove" ]]; then
     }
 
     if [[ "$COMMAND" == "install" ]]; then
+      # validate / lint package name and existence (quick validation)
+      if [[ ${VALIDATE-0} -ne 0 ]]; then
+        if ! lint_package "$FEATURE"; then
+          error "Package validation failed for '$FEATURE'"; exit 1
+        fi
+        # strict validation: try to build the discovered attribute
+        if [[ ${VALIDATE_STRICT-0} -eq 1 && -n "${PKG_ATTR-}" ]]; then
+          info "Strict validation: attempting to build nixpkgs#${PKG_ATTR}"
+          if ! nix build --no-link nixpkgs#"${PKG_ATTR}" >/dev/null 2>&1; then
+            error "Strict validation failed for attribute: ${PKG_ATTR}"; exit 1
+          fi
+        fi
+      fi
+
       # decide target (home/system) using hints/heuristics/prompt
       target=$(decide_target "$FEATURE") || exit 1
 
