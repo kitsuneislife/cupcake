@@ -17,10 +17,10 @@
 
 Usage examples:
 
-- Show features and packages: `./scripts/eclair.sh list`
-- Enable a feature: `./scripts/eclair.sh enable networkmanager`
-- Add a package: `./scripts/eclair.sh install neovim`
-- Apply changes: `./scripts/eclair.sh update`
+- Show features and packages: `eclair list`
+- Enable a feature: `eclair enable networkmanager`
+- Add a package: `eclair install neovim`
+- Apply changes: `eclair update`
 
 Flags:
 
@@ -40,7 +40,7 @@ See `hosts/default/features.nix` and `hosts/default/user-packages.nix` for the f
 - `hosts/default/*` — MANAGED BY: `eclair` (system-wide toggles & packages).
 - `home/*` — MANAGED BY: `home-manager` (per-user packages & dotfiles).
 
-Do not edit `hosts/default/*` manually unless you know what you are doing — use `./scripts/eclair.sh` or add `# MANAGED BY: eclair` to the file if you intentionally want to bypass checks.
+Do not edit `hosts/default/*` manually unless you know what you are doing — use `eclair` or add `# MANAGED BY: eclair` to the file if you intentionally want to bypass checks.
 
 ## ✦ CI / pre-commit checks
 

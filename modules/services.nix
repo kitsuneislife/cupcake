@@ -33,6 +33,9 @@
   # System packages
   environment.systemPackages = with pkgs; [
     kitty
+
+    # eclair: repository-local helper script exposed as a system command
+    (pkgs.writeShellScriptBin "eclair" (builtins.readFile ../scripts/eclair.sh))
   ] ++ (builtins.map (p: pkgs.${p}) (import ../hosts/default/user-packages.nix));
 
 
