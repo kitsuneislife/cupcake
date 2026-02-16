@@ -10,7 +10,9 @@
     };
   };
 
-  outputs = { self, nixpkgs, home-manager, ... }@inputs: {
+  outputs = { self, nixpkgs, home-manager, ... }@inputs: let
+    localCfg = if builtins.pathExists ./local.nix then import ./local.nix else { username = "lukas"; };
+  in {
     nixosConfigurations = {
       nixos = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
@@ -24,7 +26,8 @@
             home-manager.extraSpecialArgs = { inherit inputs; };  # <-- ADICIONE ESTA LINHA
             # Backup existing files that would be clobbered by Home Manager
             home-manager.backupFileExtension = ".bak";
-            home-manager.users.lukas = import ./home.nix;
+            # Use the computed `localCfg` (from outputs let-binding) to set the home-manager user
+            home-manager.users = { "${localCfg.username}" = import ./home.nix; };
           }
         ];
       };

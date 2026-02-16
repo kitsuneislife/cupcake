@@ -8,6 +8,9 @@ home/programs/packages.nix
 # ignore eclair/home-manager backups
 *.bak-*
 
+# local override (user-specific) — keep out of the repo
+local.nix
+
 # Ignore per-project runtime/version files and virtualenvs (donut / language managers)
 .nvmrc
 .python-version

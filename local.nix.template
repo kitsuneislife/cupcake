@@ -1,0 +1,7 @@
+{
+  # local.nix — PERSONALIZE and save as `local.nix` (this file is gitignored)
+  username = "youruser";        # system user / home-manager username
+  userName = "Your Name";      # display name for git, etc.
+  userEmail = "you@example.org";# email for git commits
+  hostName = "my-host";        # optional hostname override
+}
