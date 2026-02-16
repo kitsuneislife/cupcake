@@ -41,12 +41,31 @@ YELLOW='\033[33m'
 BLUE='\033[34m'
 RESET='\033[0m'
 
-# --- Paths ---
-if [[ -d "/cupcake" ]]; then
-    BASE_DIR="/cupcake"
-else
-    BASE_DIR="."
-fi
+# --- Paths / repo root detection ---
+# Determine repository root: prefer /cupcake, else search upward for a flake.nix
+# or configuration.nix. Fall back to /etc/nixos when present, otherwise use
+# the current working directory.
+detect_base_dir() {
+  if [[ -d "/cupcake" ]]; then
+    echo "/cupcake"; return 0
+  fi
+
+  local dir="$PWD"
+  while [[ "$dir" != "/" && -n "$dir" ]]; do
+    if [[ -f "$dir/flake.nix" || -f "$dir/configuration.nix" ]]; then
+      echo "$dir"; return 0
+    fi
+    dir=$(dirname "$dir")
+  done
+
+  if [[ -d "/etc/nixos" ]]; then
+    echo "/etc/nixos"; return 0
+  fi
+
+  echo "."
+}
+
+BASE_DIR=$(detect_base_dir)
 
 CONFIG_FILE="$BASE_DIR/hosts/default/features.nix"
 USER_PKGS_FILE="$BASE_DIR/hosts/default/user-packages.nix"
