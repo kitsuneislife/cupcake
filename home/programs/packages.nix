@@ -12,6 +12,7 @@
     vscode
     discord
     htop
+    quickshell
     vicinae
     # add your user packages here
   ];

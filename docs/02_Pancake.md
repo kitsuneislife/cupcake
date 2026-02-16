@@ -1,0 +1,2 @@
+
+Parfait + Hyprland + Quickshell integration
