@@ -48,6 +48,7 @@
     (pkgs.writeShellScriptBin "donut" (builtins.readFile ../scripts/donut.sh))
   ] ++ (builtins.map (p: pkgs.${p}) (import ../hosts/default/user-packages.nix));
 
+  # (Vicinae is intentionally left as a small, user-managed home fragment.)
 
   # Service examples (leave commented until you need them)
   # services.openssh.enable = true;

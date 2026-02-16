@@ -60,7 +60,20 @@ rust=1.72
 
 Vicinae (launcher)
 - `vicinae` foi adicionado aos `home.packages` e o atalho `Super+Space` abre o launcher no Hyprland.
-- Se preferir a integração completa (módulo Home‑Manager + Cachix), adicione o flake `vicinae` conforme a documentação oficial: https://docs.vicinae.com/nixos
+- A configuração foi migrada para um módulo local `services.vicinae` (gerencia o `systemd --user` unit, autostart e `settings.json`).
+- O `vicinae` oficial flake foi adicionado aos `inputs` do `flake.nix`; se preferir usar o flake oficial em vez do wrapper local, adicione/atualize `inputs.vicinae` conforme a documentação upstream.
+
+Example: enable the official flake + Cachix (optional)
+
+1) add the flake input to `flake.nix`:
+
+``nix
+inputs.vicinae.url = "github:vicinae/vicinae";
+``
+
+2) (optional) add the project's Cachix cache to `nix.binaryCaches` in your `configuration.nix` — refer to the official Vicinae docs for the exact cache name/key.
+
+Notes: the repository ships a small `services.vicinae` wrapper that is enabled by default so the launcher works out‑of‑the‑box; switching to the official flake is supported and documented upstream.
 
 
 Feedback / extensões possíveis

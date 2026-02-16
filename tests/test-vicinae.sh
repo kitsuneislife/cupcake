@@ -12,14 +12,15 @@ fi
 if ! grep -q "vicinae" home/programs/packages.nix; then
   echo "vicinae not present in home.packages"; exit 1
 fi
+
 # vicinae fragment must create a unit file and an autostart entry
 if [[ ! -f home/desktop/vicinae.nix ]]; then
   echo "home/desktop/vicinae.nix missing"; exit 1
 fi
-if ! grep -q "\.config/systemd/user/vicinae.service" home/desktop/vicinae.nix; then
+if ! grep -q "\\.config/systemd/user/vicinae.service" home/desktop/vicinae.nix; then
   echo "vicinae unit file not declared in home/desktop/vicinae.nix"; exit 1
 fi
-if ! grep -q "\.config/autostart/vicinae.desktop" home/desktop/vicinae.nix; then
+if ! grep -q "\\.config/autostart/vicinae.desktop" home/desktop/vicinae.nix; then
   echo "vicinae autostart entry not declared in home/desktop/vicinae.nix"; exit 1
 fi
 
