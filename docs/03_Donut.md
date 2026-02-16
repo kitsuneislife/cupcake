@@ -41,7 +41,22 @@ Notas operacionais
 
 Boas práticas
 - Prefira gerenciar dependências do projeto (dev/prod) via `pnpm`/`poetry`/`cargo` e usar `pipx`/`pnpm -g`/`cargo install` apenas para CLIs globais.
-- Commite os arquivos gerados (`.nvmrc`, `.python-version`, `rust-toolchain`, `.donutrc`) para garantir reprodutibilidade.
+- Commite os arquivos por‑projeto para garantir reprodutibilidade: ` .nvmrc`, `.python-version`, `rust-toolchain`.
+  **`.donutrc` é local e é ignorado por padrão** — mantenha-o fora do repositório quando desejar configurações de máquina/específicas do desenvolvedor.
+
+### Exemplo `.donutrc`
+Formato: `chave=valor` (arquivo local gerido por `donut`). Exemplo mínimo:
+
+```
+# .donutrc — project runtimes (local)
+node=18
+python=3.11
+rust=1.72
+```
+
+- `donut init <runtime> <version>` escreve o arquivo de runtime correspondente (por exemplo `.nvmrc`) e atualiza `.donutrc` automaticamente.
+- `donut shell` lê `.donutrc` para ativar as versões definidas para o projeto.
+- Recomenda-se commitar os arquivos por‑projeto (`.nvmrc`, `.python-version`, `rust-toolchain`) e manter `.donutrc` local.
 
 Feedback / extensões possíveis
 - Posso adicionar detecção automática de ferramentas comuns (ex.: `eslint`, `prettier`, `ruff`) e instalá‑las ao rodar `donut init`.
