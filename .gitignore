@@ -7,3 +7,11 @@ home/programs/packages.nix
 
 # ignore eclair/home-manager backups
 *.bak-*
+
+# Ignore per-project runtime/version files and virtualenvs (donut / language managers)
+.nvmrc
+.python-version
+rust-toolchain
+.donutrc
+.venv/
+
