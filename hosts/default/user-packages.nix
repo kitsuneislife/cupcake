@@ -7,7 +7,7 @@
 
   # example packages (use strings)
   "wget"
-  "neovim"
   "git"
+  "docker"
   # ---------------------------
 ]

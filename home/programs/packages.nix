@@ -11,6 +11,7 @@
     microsoft-edge
     vscode
     discord
+    htop
     # add your user packages here
   ];
 } 

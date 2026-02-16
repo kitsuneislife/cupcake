@@ -13,7 +13,11 @@ while [[ "${1-}" == --* ]]; do
     --dry-run) DRY_RUN=1; shift ;;
     --git) AUTO_COMMIT=1; shift ;;
     --force) FORCE=1; shift ;;
-    --help) echo "Usage: eclair [--dry-run] [--git] [--force] <command> [arg]"; exit 0 ;;
+    --no-learn) NO_LEARN=1; shift ;;
+    --assume-home) ASSUME=home; ASSUME_YES=1; shift ;;
+    --assume-system) ASSUME=system; ASSUME_YES=1; shift ;;
+    --yes) ASSUME_YES=1; shift ;;
+    --help) echo "Usage: eclair [--dry-run] [--git] [--force] [--no-learn] [--assume-home|--assume-system] <command> [arg]"; exit 0 ;;
     *) echo "Unknown flag: $1"; exit 1 ;;
   esac
 done
@@ -69,6 +73,7 @@ ensure_files_exist() {
 NIX
     success "Created template $CONFIG_FILE"
   fi
+
   if [[ ! -f "$USER_PKGS_FILE" ]]; then
     mkdir -p "$(dirname "$USER_PKGS_FILE")"
     cat > "$USER_PKGS_FILE" <<'NIX'
@@ -80,6 +85,22 @@ NIX
 ]
 NIX
     success "Created template $USER_PKGS_FILE"
+  fi
+
+  # package-hints file (optional mapping for package placement)
+  HINTS_FILE="$BASE_DIR/hosts/default/package-hints.nix"
+  if [[ ! -f "$HINTS_FILE" ]]; then
+    mkdir -p "$(dirname "$HINTS_FILE")"
+    cat > "$HINTS_FILE" <<'NIX'
+{ }:
+
+{
+  mappings = {
+    # "pkg-name" = "home" | "system";
+  };
+}
+NIX
+    success "Created template $HINTS_FILE"
   fi
 } 
 
@@ -103,11 +124,106 @@ validate_flake() {
 require_managed_by_eclair() {
   local f="$1"
   if [[ ${FORCE-0} -eq 1 ]]; then return 0; fi
-  if ! grep -q "MANAGED BY: eclair" "$f" 2>/dev/null; then
-    error "$f is not marked as 'MANAGED BY: eclair' — aborting. Add the header or use --force to override."
+  if ! grep -qE "MANAGED BY: (eclair|home-manager)" "$f" 2>/dev/null; then
+    error "$f is not marked as 'MANAGED BY: eclair' or 'MANAGED BY: home-manager' — aborting. Add the header or use --force to override."
     exit 1
   fi
 }
+
+# ---------------------------
+# Package-hints helpers
+# - persistent mapping in hosts/default/package-hints.nix
+# - lightweight heuristics and interactive prompt (learn by default)
+# ---------------------------
+HINTS_LOADED=0
+declare -A HINTMAP
+
+load_hints() {
+  if [[ $HINTS_LOADED -eq 1 ]]; then return; fi
+  HINTS_LOADED=1
+  HINTMAP=()
+  local f="$BASE_DIR/hosts/default/package-hints.nix"
+  if [[ ! -f "$f" ]]; then return; fi
+  while IFS= read -r l; do
+    if [[ $l =~ \"([^\"]+)\"[[:space:]]*=[[:space:]]*\"(home|system)\" ]]; then
+      name="${BASH_REMATCH[1]}"
+      side="${BASH_REMATCH[2]}"
+      HINTMAP["$name"]="$side"
+    fi
+  done < <(grep -nE '\"[^\"]+\"\s*=\s*\"(home|system)\"' "$f" 2>/dev/null || true)
+}
+
+get_hint() {
+  local pkg="$1"
+  load_hints
+  echo "${HINTMAP[$pkg]-}"
+}
+
+save_hint() {
+  local pkg="$1" side="$2" f="$BASE_DIR/hosts/default/package-hints.nix"
+  # already present?
+  if grep -qE "\"$pkg\"\s*=\s*\"(home|system)\"" "$f" 2>/dev/null; then return 0; fi
+
+  # insert just before the end of the mappings block
+  awk -v pkg="$pkg" -v side="$side" '
+    { print }
+    /^\s*mappings = \{/ { inmap=1; next }
+    inmap && /^\s*\};/ { printf("    \"%s\" = \"%s\";\n", pkg, side); inmap=0 }
+  ' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+  # update runtime cache
+  HINTMAP["$pkg"]="$side"
+  success "Saved mapping: $pkg -> $side"
+}
+
+# heuristics: quick lists
+likely_system=(docker docker-compose podman containerd nginx postgresql postgres mysql mariadb redis rabbitmq qemu virtualbox libvirt wireguard openvpn)
+likely_home=(neovim vim tmux kitty alacritty alacritty-terminfo ripgrep rg fd bat git vscode code microsoft-edge discord firefox slack spotify)
+
+decide_target() {
+  local pkg="$1"
+  # hints first
+  local hint=$(get_hint "$pkg")
+  if [[ -n "$hint" ]]; then echo "$hint"; return; fi
+
+  # explicit CLI overrides
+  if [[ ${ASSUME_YES-0} -eq 1 ]]; then
+    if [[ -n "$ASSUME" ]]; then
+      if [[ ${NO_LEARN-0} -ne 1 ]]; then save_hint "$pkg" "$ASSUME"; fi
+      echo "$ASSUME"; return; fi
+  fi
+
+  for x in "${likely_system[@]}"; do [[ "$pkg" == "$x" ]] && { echo system; return; }; done
+  for x in "${likely_home[@]}"; do [[ "$pkg" == "$x" ]] && { echo home; return; }; done
+
+  # default suggestion
+  local default=home
+
+  if [[ -t 0 && -t 1 ]]; then
+    # interactive prompt — default: home — remember by default
+    echo "Where should '$pkg' be installed?"
+    select choice in "home (per-user)" "system (global)" "cancel"; do
+      case $REPLY in
+        1) target=home; break;;
+        2) target=system; break;;
+        *) echo "Canceled."; return 1;;
+      esac
+    done
+
+    # remember by default
+    if [[ ${NO_LEARN-0} -ne 1 ]]; then
+      save_hint "$pkg" "$target"
+    fi
+    echo "$target"; return
+  fi
+
+  # non-interactive: choose default (home) and remember (learn by default)
+  if [[ ${NO_LEARN-0} -ne 1 ]]; then
+    save_hint "$pkg" "$default"
+  fi
+  echo "$default"
+}
+
+# ---------------------------
 
 usage() {
     echo -e "${BOLD}✦ eclair${RESET} — Cupcake Package & Feature Manager (adaptado)"
@@ -249,42 +365,125 @@ if [[ "$COMMAND" == "install" || "$COMMAND" == "remove" ]]; then
     if [[ -z "$FEATURE" ]]; then error "Missing package name"; fi
 
     if [[ $DRY_RUN -eq 1 ]]; then
-      info "(dry-run) would $COMMAND '$FEATURE' in $USER_PKGS_FILE"
+      info "(dry-run) would $COMMAND '$FEATURE'"
       exit 0
     fi
 
-    require_managed_by_eclair "$USER_PKGS_FILE"
-    bak=$(backup_file "$USER_PKGS_FILE")
+    # determine files
+    USER_PKGS_FILE="$BASE_DIR/hosts/default/user-packages.nix"
+    HOME_PKGS_FILE="$BASE_DIR/home/programs/packages.nix"
+
+    # helper: add to home.packages (inserts above placeholder comment)
+    add_to_home() {
+      local pkg="$1" f="$HOME_PKGS_FILE"
+      require_managed_by_eclair "$f"
+      bak=$(backup_file "$f")
+      if grep -qE "^[[:space:]]*${pkg}[[:space:]]*$" "$f"; then
+        warn "Package '$pkg' already present in $f"
+        return 0
+      fi
+      sed -i "/# add your user packages here/i \    ${pkg}" "$f"
+      success "Added package '$pkg' to $f (backup: $(basename \"$bak\"))"
+    }
+
+    remove_from_home() {
+      local pkg="$1" f="$HOME_PKGS_FILE"
+      require_managed_by_eclair "$f"
+      bak=$(backup_file "$f")
+      sed -i "/^[[:space:]]*${pkg}[[:space:]]*$/d" "$f" || true
+      success "Removed package '$pkg' from $f (backup: $(basename \"$bak\"))"
+    }
+
+    # helper: add/remove system package (hosts/default/user-packages.nix)
+    add_to_system() {
+      local pkg="$1" f="$USER_PKGS_FILE"
+      require_managed_by_eclair "$f"
+      bak=$(backup_file "$f")
+      if grep -qE "\"${pkg}\"" "$f" || grep -qE "^[[:space:]]*${pkg}[[:space:]]*$" "$f"; then
+        warn "Package '${pkg}' already exists in $f"
+        return 0
+      fi
+      sed -i "/# ---------------------------/i \  \"${pkg}\"" "$f"
+      success "Added package '${pkg}' to $f (backup: $(basename \"$bak\"))"
+    }
+
+    remove_from_system() {
+      local pkg="$1" f="$USER_PKGS_FILE"
+      require_managed_by_eclair "$f"
+      bak=$(backup_file "$f")
+      sed -i "/\"${pkg}\"/d" "$f" || true
+      sed -i "/^[[:space:]]*${pkg}[[:space:]]*$/d" "$f" || true
+      success "Removed package '${pkg}' from $f (backup: $(basename \"$bak\"))"
+    }
 
     if [[ "$COMMAND" == "install" ]]; then
-      if grep -qE "\"${FEATURE}\"" "$USER_PKGS_FILE" || grep -qE "^[[:space:]]*${FEATURE}[[:space:]]*$" "$USER_PKGS_FILE"; then
-        # fallback: check quoted name too
-        if grep -qE "\"${FEATURE}\"" "$USER_PKGS_FILE"; then
-          warn "Package '$FEATURE' already exists in $USER_PKGS_FILE"
-          exit 0
-        fi
+      # decide target (home/system) using hints/heuristics/prompt
+      target=$(decide_target "$FEATURE") || exit 1
+
+      if [[ "$target" == "system" ]]; then
+        add_to_system "$FEATURE"
+      else
+        add_to_home "$FEATURE"
       fi
-      # insert as a quoted string
-      sed -i "/# ---------------------------/i \\  \"${FEATURE}\"" "$USER_PKGS_FILE"
-      success "Added package '$FEATURE' to $USER_PKGS_FILE (backup: $(basename \"$bak\"))"
-    else
-      # remove quoted or unquoted occurrence
-      if ! grep -qE "(\"${FEATURE}\"|^[[:space:]]*${FEATURE}[[:space:]]*$)" "$USER_PKGS_FILE"; then
-        warn "Package '$FEATURE' not present in $USER_PKGS_FILE"
+
+      if [[ $AUTO_COMMIT -eq 1 && -d "$BASE_DIR/.git" ]]; then
+        if [[ "$target" == "system" ]]; then
+          git -C "$BASE_DIR" add "$USER_PKGS_FILE" && git -C "$BASE_DIR" commit -m "eclair: install $FEATURE (system)" || true
+        else
+          git -C "$BASE_DIR" add "$HOME_PKGS_FILE" && git -C "$BASE_DIR" commit -m "eclair: install $FEATURE (home)" || true
+        fi
+        success "Committed change to git"
+      fi
+
+      info "Run 'eclair update' (system) or 'home-manager switch' (user) to apply changes."
+      exit 0
+    fi
+
+    # --- remove ---
+    if [[ "$COMMAND" == "remove" ]]; then
+      # check hints first (allow override via --assume-home/--assume-system)
+      hint=$(get_hint "$FEATURE")
+      if [[ ${ASSUME_YES-0} -eq 1 && -n "$ASSUME" ]]; then hint="$ASSUME"; fi
+      if [[ -n "$hint" ]]; then
+        if [[ "$hint" == "system" ]]; then
+          remove_from_system "$FEATURE"
+        else
+          remove_from_home "$FEATURE"
+        fi
         exit 0
       fi
-      sed -i "/\"${FEATURE}\"/d" "$USER_PKGS_FILE" || true
-      sed -i "/^[[:space:]]*${FEATURE}[[:space:]]*$/d" "$USER_PKGS_FILE" || true
-      success "Removed package '$FEATURE' from $USER_PKGS_FILE (backup: $(basename "$bak"))"
-    fi
 
-    if [[ $AUTO_COMMIT -eq 1 && -d "$BASE_DIR/.git" ]]; then
-      git -C "$BASE_DIR" add "$USER_PKGS_FILE" && git -C "$BASE_DIR" commit -m "eclair: $COMMAND $FEATURE"
-      success "Committed change to git"
-    fi
+      # not hinted: check both files
+      in_system=0; in_home=0
+      if grep -qE "\"${FEATURE}\"" "$USER_PKGS_FILE" || grep -qE "^[[:space:]]*${FEATURE}[[:space:]]*$" "$USER_PKGS_FILE"; then in_system=1; fi
+      if grep -qE "^[[:space:]]*${FEATURE}[[:space:]]*$" "$HOME_PKGS_FILE"; then in_home=1; fi
 
-    info "Run 'eclair update' to apply changes system-wide."
-    exit 0
+      if [[ $in_system -eq 1 && $in_home -eq 1 ]]; then
+        echo "Package found in both system and home. Where remove?"
+        select choice in "system" "home" "both" "cancel"; do
+          case $REPLY in
+            1) remove_from_system "$FEATURE"; break;;
+            2) remove_from_home "$FEATURE"; break;;
+            3) remove_from_system "$FEATURE"; remove_from_home "$FEATURE"; break;;
+            *) echo "Canceled"; exit 1;;
+          esac
+        done
+      elif [[ $in_system -eq 1 ]]; then
+        remove_from_system "$FEATURE"
+      elif [[ $in_home -eq 1 ]]; then
+        remove_from_home "$FEATURE"
+      else
+        warn "Package '$FEATURE' not found in either system or home package lists."
+      fi
+
+      if [[ $AUTO_COMMIT -eq 1 && -d "$BASE_DIR/.git" ]]; then
+        git -C "$BASE_DIR" add "$USER_PKGS_FILE" "$HOME_PKGS_FILE" && git -C "$BASE_DIR" commit -m "eclair: remove $FEATURE" || true
+        success "Committed change to git"
+      fi
+
+      info "Run 'eclair update' or 'home-manager switch' to apply changes." 
+      exit 0
+    fi
 fi
 
 # --- Feature Toggling ---
