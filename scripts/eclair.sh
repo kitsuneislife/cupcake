@@ -6,6 +6,7 @@
 set -euo pipefail
 
 # Allow optional global flags before the command
+# AUTO_COMMIT default: 0 (disabled). Use `--git` to enable automatic commits.
 DRY_RUN=0
 AUTO_COMMIT=0
 # validation behavior (default: quick validation enabled)

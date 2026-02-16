@@ -46,7 +46,9 @@
     # eclair + donut: repository-local helper scripts exposed as system commands
     (pkgs.writeShellScriptBin "eclair" (builtins.readFile ../scripts/eclair.sh))
     (pkgs.writeShellScriptBin "donut" (builtins.readFile ../scripts/donut.sh))
-  ] ++ (builtins.map (p: pkgs.${p}) (import ../hosts/default/user-packages.nix));
+  ] ++ (let
+    userPkgs = if builtins.pathExists ../hosts/default/user-packages.nix then import ../hosts/default/user-packages.nix else import ../hosts/default/user-packages.nix.template;
+  in builtins.map (p: pkgs.${p}) userPkgs);
 
   # (Vicinae is intentionally left as a small, user-managed home fragment.)
 

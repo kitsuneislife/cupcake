@@ -9,9 +9,11 @@
     ./home/programs/shell.nix
     ./home/programs/terminal.nix
     ./home/programs/editors.nix
-    ./home/programs/packages.nix
+    # Use the tracked template if the per-user packages file isn't present in the flake
+    (if builtins.pathExists ./home/programs/packages.nix then ./home/programs/packages.nix else ./home/programs/packages.nix.template)
     ./home/desktop/vicinae.nix
     ./home/desktop/hyprland.nix
+    ./home/desktop/quickshell.nix
     ./home/desktop/theme.nix
   ];
 

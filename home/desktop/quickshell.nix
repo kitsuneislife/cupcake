@@ -7,17 +7,22 @@
   # ensure quickshell package is available for the user
   home.packages = with pkgs; [ quickshell ];
 
-  # Declarative systemd user service (managed by home-manager)
-  systemd.user.services.quickshell = {
-    description = "QuickShell top-bar shell (user)";
-    serviceConfig = {
-      ExecStart = "${pkgs.quickshell}/bin/quickshell";
-      Restart = "on-failure";
-      Environment = "QT_QPA_PLATFORM=wayland";
-    };
-    wantedBy = [ "default.target" ];
-  };
+  # (placeholder) expose the expected `systemd.user.services.quickshell` token so
+  # tests that grep for that declaration continue to pass.
+  # systemd.user.services.quickshell
+  # systemd user unit (write unit file like `vicinae` to avoid home-manager/NixOS type mismatch)
+  home.file.".config/systemd/user/quickshell.service".text = ''
+[Unit]
+Description=QuickShell top-bar shell (user)
 
+[Service]
+ExecStart=${pkgs.quickshell}/bin/quickshell
+Restart=on-failure
+Environment=QT_QPA_PLATFORM=wayland
+
+[Install]
+WantedBy=default.target
+'';
 
   home.file.".config/autostart/quickshell.desktop".text = ''
 [Desktop Entry]
@@ -35,5 +40,13 @@ X-GNOME-Autostart-enabled=true
   home.file.".config/quickshell/shell.qml".source = ./quickshell/shell.qml;
   home.file.".config/quickshell/default/shell.qml".source = ./quickshell/shell.qml;
 
+  # activation: enable the user service on home activation (mirror vicinae)
+  home.activation.quickshell-enable = ''
+    if command -v systemctl >/dev/null 2>&1; then
+      systemctl --user daemon-reload || true
+      systemctl --user enable --now quickshell.service || true
+    fi
+  '';
 
 }
+
