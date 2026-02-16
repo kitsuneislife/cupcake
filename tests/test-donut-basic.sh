@@ -19,13 +19,20 @@ if ! (grep -q "pnpm add -g eslint" <<<"$out" || grep -q "npm i -g eslint" <<<"$o
   echo "donut dry-run global add did not print pnpm or npm fallback"; echo "$out"; exit 1
 fi
 
-# status should run and report detected files (do not require creating .donutrc)
+# create temporary per-project runtime files so status detection is deterministic
+cleanup() { rm -f .nvmrc .python-version rust-toolchain 2>/dev/null || true; }
+trap cleanup EXIT
+printf '%s' "18" > .nvmrc
+printf '%s' "3.11" > .python-version
+printf '%s' "1.72" > rust-toolchain
+
+# status should run and report detected files
 out=$(bash ./scripts/donut.sh status || true)
 if ! grep -q "Detected files" <<<"$out"; then
   echo "donut status did not print 'Detected files'"; echo "$out"; exit 1
 fi
-# repo contains .nvmrc/.python-version — status should list them
-if ! grep -q "\.nvmrc" <<<"$out" || ! grep -q "\.python-version" <<<"$out"; then
+# ensure status lists the runtime files we created
+if ! (grep -q "\.nvmrc" <<<"$out" && grep -q "\.python-version" <<<"$out" && grep -q "rust-toolchain" <<<"$out"); then
   echo "donut status did not report expected per-project files"; echo "$out"; exit 1
 fi
 
