@@ -33,6 +33,9 @@ X-GNOME-Autostart-enabled=true
   home.file.".config/quickshell/config.json".source = ./quickshell/settings.json;
   home.file.".config/quickshell/main.qml".source = ./quickshell/main.qml;
   home.file.".config/quickshell/panel.qml".source = ./quickshell/panel.qml;
+  # QuickShell looks for `shell.qml` or a `default/shell.qml` directory — provide both
+  home.file.".config/quickshell/shell.qml".source = ./quickshell/shell.qml;
+  home.file.".config/quickshell/default/shell.qml".source = ./quickshell/shell.qml;
 
   # activation: enable the user service if systemd user is active
   home.activation.quickshell-enable = ''

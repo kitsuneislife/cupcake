@@ -26,8 +26,17 @@ if [[ ! -d home/desktop/quickshell ]]; then
   echo "example quickshell config directory missing"; exit 1
 fi
 
+# ensure shell.qml is present (quickshell's expected entrypoint)
+if [[ ! -f home/desktop/quickshell/shell.qml ]]; then
+  echo "quickshell example shell.qml missing"; exit 1
+fi
+
 if ! grep -q "\.config/quickshell/main.qml" home/desktop/quickshell.nix; then
   echo "quickshell.nix does not reference main.qml"; exit 1
+fi
+
+if ! grep -q "\.config/quickshell/shell.qml" home/desktop/quickshell.nix; then
+  echo "quickshell.nix does not reference shell.qml"; exit 1
 fi
 
 if ! grep -q "\.config/quickshell/config.json" home/desktop/quickshell.nix; then
