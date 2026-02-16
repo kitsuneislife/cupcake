@@ -39,6 +39,10 @@
     pyenv
     rustup
 
+    # Global package managers used by Donut when possible
+    pnpm
+    pipx
+
     # eclair + donut: repository-local helper scripts exposed as system commands
     (pkgs.writeShellScriptBin "eclair" (builtins.readFile ../scripts/eclair.sh))
     (pkgs.writeShellScriptBin "donut" (builtins.readFile ../scripts/donut.sh))

@@ -5,6 +5,15 @@
 
 set -euo pipefail
 
+# Accept optional leading flags: --dry-run and --yes
+DRY_RUN=0
+AUTO_YES=0
+while [[ "${1:-}" == "--dry-run" || "${1:-}" == "--yes" ]]; do
+  [[ "${1}" == "--dry-run" ]] && DRY_RUN=1
+  [[ "${1}" == "--yes" ]] && AUTO_YES=1
+  shift
+done
+
 COMMAND="${1:-}"
 RUNTIME="${2:-}"
 VERSION="${3:-}"
@@ -90,6 +99,72 @@ detect_node_manager() {
   fi
 }
 
+# --- Global package-manager helpers (pnpm / pipx / cargo) ---
+ensure_pnpm_installed_for_node() {
+  local nodev="$1" mgr
+  mgr=$(detect_node_manager) || { warn "nenhum gerenciador de Node disponível (nvm/fnm)"; return 1; }
+  if command -v pnpm >/dev/null 2>&1; then
+    info "pnpm já disponível"
+    return 0
+  fi
+
+  info "Garantindo pnpm para node ${nodev} (usando ${mgr})"
+  if [[ "$DRY_RUN" -eq 1 ]]; then info "(dry-run) instalar pnpm"; return 0; fi
+
+  if command -v corepack >/dev/null 2>&1; then
+    # activate pnpm via corepack in the requested node environment
+    if [[ "$mgr" == "nvm" ]]; then
+      bash -lic "nvm use ${nodev} >/dev/null 2>&1 || true; corepack enable >/dev/null 2>&1 || true; corepack prepare pnpm@latest --activate >/dev/null 2>&1 || true"
+    else
+      bash -lic "fnm use ${nodev} >/dev/null 2>&1 || true; corepack enable >/dev/null 2>&1 || true; corepack prepare pnpm@latest --activate >/dev/null 2>&1 || true"
+    fi
+  else
+    # fallback to global npm install for the active node
+    if [[ "$mgr" == "nvm" ]]; then
+      bash -lic "nvm use ${nodev} >/dev/null 2>&1 || true; npm i -g pnpm" || true
+    else
+      bash -lic "fnm use ${nodev} >/dev/null 2>&1 || true; npm i -g pnpm" || true
+    fi
+  fi
+
+  if command -v pnpm >/dev/null 2>&1; then
+    success "pnpm pronto"
+  else
+    warn "não foi possível instalar pnpm automaticamente — instale pnpm no sistema ou no seu node"
+  fi
+}
+
+ensure_pipx_available() {
+  if command -v pipx >/dev/null 2>&1; then
+    info "pipx já disponível"
+    return 0
+  fi
+  warn "pipx não encontrado — tentando instalação por usuário (fallback)"
+  if [[ "$DRY_RUN" -eq 1 ]]; then info "(dry-run) python -m pip install --user pipx"; return 0; fi
+  if command -v python >/dev/null 2>&1; then
+    python -m pip install --user pipx || true
+    python -m pipx ensurepath || true
+  elif command -v pyenv >/dev/null 2>&1; then
+    local pybin
+    pybin=$(pyenv which python 2>/dev/null || true)
+    [[ -n "$pybin" ]] && "$pybin" -m pip install --user pipx || true
+  fi
+  if command -v pipx >/dev/null 2>&1; then
+    success "pipx instalado"
+  else
+    warn "pipx não pôde ser instalado automaticamente; adicione 'pipx' em systemPackages ou instale manualmente"
+  fi
+}
+
+ensure_cargo_available() {
+  if command -v cargo >/dev/null 2>&1; then
+    info "cargo disponível"
+    return 0
+  fi
+  warn "cargo não encontrado; certifique-se de ter instalado via rustup"
+}
+
+
 # --- Install / init / use implementations ---
 install_node() {
   local v="$1"
@@ -109,6 +184,8 @@ init_node() {
   install_node "$v" || return 1
   echo "$v" > .nvmrc
   set_donut_value node "$v"
+  # ensure pnpm (global package manager) is available for this node version
+  ensure_pnpm_installed_for_node "$v" || true
   success "Projeto inicializado para node ${v} (wrote .nvmrc + .donutrc)"
 }
 
@@ -147,6 +224,8 @@ init_python() {
       success ".venv created (python ${v})"
     fi
   fi
+  # ensure pipx (global CLI manager for Python) is available
+  ensure_pipx_available || true
   success "Projeto inicializado para python ${v}"
 }
 
@@ -172,6 +251,8 @@ init_rust() {
   install_rust "$v" || return 1
   echo "$v" > rust-toolchain
   set_donut_value rust "$v"
+  # ensure cargo available (rustup should provide it)
+  ensure_cargo_available || true
   success "Projeto inicializado para rust ${v}"
 }
 
@@ -245,6 +326,7 @@ Commands:
   list <runtime>                list installed versions for runtime
   status                        show project donut status
   uninstall <runtime> <version> remove installed version
+  global <add|remove> <runtime> <pkg>  install/remove global CLI via pnpm/pipx/cargo
   help                          show this help
 
 Supported runtimes: node, python, rust
@@ -254,8 +336,6 @@ EOF
   exit 0
 fi
 
-DRY_RUN=0
-if [[ "${1-}" == "--dry-run" ]]; then DRY_RUN=1; fi
 
 case "$COMMAND" in
   install)
@@ -304,6 +384,71 @@ case "$COMMAND" in
 
   status)
     status ;;
+
+  global)
+    # donut global <add|remove> <runtime> <pkg>
+    op="${2:-}"
+    rt="${3:-}"
+    pkg="${4:-}"
+    if [[ -z "$op" || -z "$rt" || -z "$pkg" ]]; then
+      echo "Usage: donut global <add|remove> <runtime> <pkg>"; exit 1
+    fi
+
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      info "(dry-run) global ${op} ${rt} ${pkg}"
+    fi
+
+    case "$rt" in
+      node)
+        # prefer pnpm, fallback to npm (respect DRY_RUN)
+        if [[ "$op" == "add" ]]; then
+          if command -v pnpm >/dev/null 2>&1; then
+            [[ "$DRY_RUN" -eq 1 ]] && info "(dry-run) pnpm add -g ${pkg}" || pnpm add -g "$pkg"
+          else
+            # try to use node manager -> npm in that environment
+            if [[ "$DRY_RUN" -eq 1 ]]; then
+              info "(dry-run) npm i -g ${pkg} (in node env)"
+            else
+              if detect_node_manager >/dev/null 2>&1; then
+                bash -lic "npm i -g ${pkg}" || warn "npm global install falhou"
+              else
+                warn "nenhum gerenciador de node/ npm disponível"
+              fi
+            fi
+          fi
+        else
+          if command -v pnpm >/dev/null 2>&1; then
+            [[ "$DRY_RUN" -eq 1 ]] && info "(dry-run) pnpm remove -g ${pkg}" || pnpm remove -g "$pkg"
+          else
+            [[ "$DRY_RUN" -eq 1 ]] && info "(dry-run) npm uninstall -g ${pkg}" || npm uninstall -g "$pkg" || warn "npm uninstall falhou"
+          fi
+        fi
+        ;;
+      python)
+        if [[ "$op" == "add" ]]; then
+          if command -v pipx >/dev/null 2>&1; then
+            [[ "$DRY_RUN" -eq 1 ]] && info "(dry-run) pipx install ${pkg}" || pipx install "$pkg"
+          else
+            [[ "$DRY_RUN" -eq 1 ]] && info "(dry-run) python -m pipx install ${pkg}" || (python -m pipx install "$pkg" || warn "pipx não disponível")
+          fi
+        else
+          if command -v pipx >/dev/null 2>&1; then
+            [[ "$DRY_RUN" -eq 1 ]] && info "(dry-run) pipx uninstall ${pkg}" || pipx uninstall "$pkg" || true
+          else
+            warn "pipx não disponível"
+          fi
+        fi
+        ;;
+      rust)
+        if [[ "$op" == "add" ]]; then
+          [[ "$DRY_RUN" -eq 1 ]] && info "(dry-run) cargo install ${pkg}" || cargo install "$pkg"
+        else
+          [[ "$DRY_RUN" -eq 1 ]] && info "(dry-run) cargo uninstall ${pkg}" || cargo uninstall "$pkg" || true
+        fi
+        ;;
+      *) error "runtime não suportado para global: $rt"; exit 1;;
+    esac
+    ;;
 
   uninstall)
     if [[ -z "$RUNTIME" || -z "$VERSION" ]]; then echo "Usage: donut uninstall <runtime> <version"; exit 1; fi
