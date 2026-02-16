@@ -32,13 +32,19 @@
       desktop = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         specialArgs = { inherit inputs; };
-        modules = [ ./hosts/desktop.nix ];
+        modules = [
+          ./configuration.nix
+          ./hosts/desktop.nix
+        ];
       };
 
       laptop = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         specialArgs = { inherit inputs; };
-        modules = [ ./hosts/laptop.nix ];
+        modules = [
+          ./configuration.nix
+          ./hosts/laptop.nix
+        ];
       };
     };
   };
