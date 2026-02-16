@@ -7,19 +7,17 @@
   # ensure quickshell package is available for the user
   home.packages = with pkgs; [ quickshell ];
 
-  # systemd user service to run the QuickShell server (auto-start)
-  home.file.".config/systemd/user/quickshell.service".text = ''
-[Unit]
-Description=QuickShell top-bar shell (user)
+  # Declarative systemd user service (managed by home-manager)
+  systemd.user.services.quickshell = {
+    description = "QuickShell top-bar shell (user)";
+    serviceConfig = {
+      ExecStart = "${pkgs.quickshell}/bin/quickshell";
+      Restart = "on-failure";
+      Environment = "QT_QPA_PLATFORM=wayland";
+    };
+    wantedBy = [ "default.target" ];
+  };
 
-[Service]
-ExecStart=${pkgs.quickshell}/bin/quickshell
-Restart=on-failure
-Environment=QT_QPA_PLATFORM=wayland
-
-[Install]
-WantedBy=default.target
-'';
 
   home.file.".config/autostart/quickshell.desktop".text = ''
 [Desktop Entry]
@@ -37,11 +35,5 @@ X-GNOME-Autostart-enabled=true
   home.file.".config/quickshell/shell.qml".source = ./quickshell/shell.qml;
   home.file.".config/quickshell/default/shell.qml".source = ./quickshell/shell.qml;
 
-  # activation: enable the user service if systemd user is active
-  home.activation.quickshell-enable = ''
-    if command -v systemctl >/dev/null 2>&1; then
-      systemctl --user daemon-reload || true
-      systemctl --user enable --now quickshell.service || true
-    fi
-  '';
+
 }

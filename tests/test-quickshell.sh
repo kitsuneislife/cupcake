@@ -13,8 +13,8 @@ if [[ ! -f home/desktop/quickshell.nix ]]; then
   echo "home/desktop/quickshell.nix missing"; exit 1
 fi
 
-if ! grep -q "\.config/systemd/user/quickshell.service" home/desktop/quickshell.nix; then
-  echo "quickshell unit file not declared in home/desktop/quickshell.nix"; exit 1
+if ! grep -q "systemd.user.services.quickshell" home/desktop/quickshell.nix; then
+  echo "quickshell systemd.user.services not declared in home/desktop/quickshell.nix"; exit 1
 fi
 
 if ! grep -q "\.config/autostart/quickshell.desktop" home/desktop/quickshell.nix; then
