@@ -2,5 +2,8 @@
 !README.md
 !docs/*.md
 
+hosts/default/user-packages.nix
+home/programs/packages.nix
+
 # ignore eclair/home-manager backups
 *.bak-*

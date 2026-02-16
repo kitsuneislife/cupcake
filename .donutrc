@@ -1,0 +1,4 @@
+# .donutrc — managed by donut (key=value)
+# Example: node=18 python=3.11 rust=1.72
+node=18
+python=3.11
