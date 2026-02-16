@@ -16,6 +16,25 @@ jobs:
 
       - name: Show Nix version
         run: nix --version
+
+      - name: Ensure Nix >= 2.18 (fallback installer)
+        run: |
+          echo "nix before: $(nix --version 2>/dev/null || echo 'none')"
+          if command -v nix >/dev/null 2>&1; then
+            ver=$(nix --version | awk '{print $3}' | cut -d. -f1-2)
+          else
+            ver=0
+          fi
+          req="2.18"
+          if [ "$(printf '%s\n%s' "$req" "$ver" | sort -V | head -n1)" = "$req" ]; then
+            echo "Nix version OK: $ver"
+          else
+            echo "Upgrading/installing Nix to meet requirement >= $req"
+            curl -L https://nixos.org/nix/install | sh -s -- --no-channel-update
+            . /home/runner/.nix-profile/etc/profile.d/nix.sh
+          fi
+          nix --version
+
       - name: Run flake check
         run: nix flake check
       - name: Run duplicate-package check
