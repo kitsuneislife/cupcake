@@ -20,13 +20,15 @@
         kb_variant = "abnt2";
       };
 
+      # Vicinae server is managed via a dedicated systemd user service (see `home/desktop/vicinae.nix`).
       exec = [
-        "vicinae server &"
+        # kept intentionally empty — service started by systemd
       ];
 
       bind = [
 
         "SUPER, Tab, exec, sh -c 'vicinae toggle; hyprctl dispatch movecursor 960 540'"
+        "SUPER, SPACE, exec, vicinae"
 
         "SUPER, Q, killactive"
         "SUPER, T, exec, kitty"

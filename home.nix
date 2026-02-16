@@ -10,6 +10,7 @@
     ./home/programs/terminal.nix
     ./home/programs/editors.nix
     ./home/programs/packages.nix
+    ./home/desktop/vicinae.nix
     ./home/desktop/hyprland.nix
     ./home/desktop/theme.nix
   ];
