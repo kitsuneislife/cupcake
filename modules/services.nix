@@ -34,8 +34,14 @@
   environment.systemPackages = with pkgs; [
     kitty
 
-    # eclair: repository-local helper script exposed as a system command
+    # Version managers required by `donut`
+    fnm
+    pyenv
+    rustup
+
+    # eclair + donut: repository-local helper scripts exposed as system commands
     (pkgs.writeShellScriptBin "eclair" (builtins.readFile ../scripts/eclair.sh))
+    (pkgs.writeShellScriptBin "donut" (builtins.readFile ../scripts/donut.sh))
   ] ++ (builtins.map (p: pkgs.${p}) (import ../hosts/default/user-packages.nix));
 
 
