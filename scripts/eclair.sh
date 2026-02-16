@@ -126,6 +126,36 @@ if [[ -z "$COMMAND" ]]; then
     usage
 fi
 
+# Helper: run a command as root (try pkexec, then sudo)
+run_privileged() {
+  local cmd="$*"
+
+  # already root
+  if [ "$(id -u)" -eq 0 ]; then
+    sh -c "$cmd"; return $?
+  fi
+
+  # prefer sudo in CLI sessions (most reliable); fall back to pkexec for graphical sessions
+  if command -v sudo >/dev/null 2>&1; then
+    if sudo sh -c "$cmd"; then
+      return 0
+    else
+      warn "sudo failed or was cancelled — trying pkexec as fallback"
+    fi
+  fi
+
+  if command -v pkexec >/dev/null 2>&1; then
+    if pkexec sh -c "$cmd"; then
+      return 0
+    else
+      warn "pkexec failed or is unavailable for this session"
+    fi
+  fi
+
+  error "No privilege escalation method available (pkexec/sudo). Run the command as root manually."
+  return 1
+}
+
 # Update: validate + rebuild the NixOS system with current flake
 if [[ "$COMMAND" == "update" ]]; then
     info "Validating flake before update..."
@@ -140,7 +170,10 @@ if [[ "$COMMAND" == "update" ]]; then
     fi
 
     info "Running nixos-rebuild switch --flake $BASE_DIR"
-    pkexec nixos-rebuild switch --flake "$BASE_DIR" || { error "nixos-rebuild failed"; exit 1; }
+    if ! run_privileged "nixos-rebuild switch --flake '$BASE_DIR'"; then
+      error "nixos-rebuild failed"
+      exit 1
+    fi
     success "System updated"
     exit 0
 fi
@@ -148,7 +181,7 @@ fi
 # Clean: garbage collect old generations
 if [[ "$COMMAND" == "clean" ]]; then
     info "Collecting garbage..."
-    if pkexec nix-collect-garbage -d; then
+    if run_privileged "nix-collect-garbage -d"; then
         success "Garbage collected."
     else
         error "Failed to collect garbage."
