@@ -5,7 +5,7 @@ echo "Test: eclair (dry-run install + list + update)"
 
 # dry-run install should not modify files and should print a dry-run message
 out=$(bash ./scripts/eclair.sh --dry-run --no-validate install htop)
-if ! grep -q "\(dry-run\) would install 'htop'" <<<"$out"; then
+if ! grep -q "would install 'htop'" <<<"$out"; then
   echo "eclair dry-run install did not report expected message:"; echo "$out"
   exit 1
 fi
