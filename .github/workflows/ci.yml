@@ -1,0 +1,17 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Nix (for flakes)
+        uses: cachix/install-nix-action@v22
+        with:
+          extra_nix_config: 'experimental-features = nix-command flakes'
+      - name: Run flake check
+        run: nix flake check
+      - name: Run duplicate-package check
+        run: bash ./scripts/check-duplicates.sh
