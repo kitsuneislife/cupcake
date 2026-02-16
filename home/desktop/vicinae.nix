@@ -33,6 +33,14 @@ Exec=${pkgs.vicinae}/bin/vicinae server
 X-GNOME-Autostart-enabled=true
 '';
 
+  # write a minimal Vicinae user config (JSONC) with close_on_focus_loss enabled
+  home.file.".config/vicinae/settings.json".text = ''
+{
+  // minimal declarative settings for Vicinae
+  "close_on_focus_loss": true
+}
+'';
+
   # activation: enable the user service if systemd user is active
   home.activation.vicinae-enable = ''
     if command -v systemctl >/dev/null 2>&1; then

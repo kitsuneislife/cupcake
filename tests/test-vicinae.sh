@@ -22,4 +22,9 @@ fi
 if ! grep -q "\.config/autostart/vicinae.desktop" home/desktop/vicinae.nix; then
   echo "vicinae autostart entry not declared in home/desktop/vicinae.nix"; exit 1
 fi
+
+# ensure user settings include close_on_focus_loss = true
+if ! grep -q "close_on_focus_loss" home/desktop/vicinae.nix; then
+  echo "vicinae close_on_focus_loss not configured"; exit 1
+fi
 echo "vicinae config OK"
