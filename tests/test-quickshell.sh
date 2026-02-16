@@ -21,9 +21,17 @@ if ! grep -q "\.config/autostart/quickshell.desktop" home/desktop/quickshell.nix
   echo "quickshell autostart entry not declared in home/desktop/quickshell.nix"; exit 1
 fi
 
-# ensure user settings include autostart = true
-if ! grep -q "autostart" home/desktop/quickshell.nix; then
-  echo "quickshell autostart not configured"; exit 1
+# example config directory should exist and quickshell.nix should reference example files
+if [[ ! -d home/desktop/quickshell ]]; then
+  echo "example quickshell config directory missing"; exit 1
+fi
+
+if ! grep -q "\.config/quickshell/main.qml" home/desktop/quickshell.nix; then
+  echo "quickshell.nix does not reference main.qml"; exit 1
+fi
+
+if ! grep -q "\.config/quickshell/config.json" home/desktop/quickshell.nix; then
+  echo "quickshell.nix does not reference config.json"; exit 1
 fi
 
 echo "quickshell config OK"

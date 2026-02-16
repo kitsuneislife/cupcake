@@ -29,13 +29,10 @@ Exec=${pkgs.quickshell}/bin/quickshell
 X-GNOME-Autostart-enabled=true
 '';
 
-  # minimal QuickShell user config: enable autostart by default
-  home.file.".config/quickshell/config.json".text = ''
-{
-  "autostart": true,
-  "position": "top"
-}
-'';
+  # copy example QuickShell configuration (QML + settings) from repository
+  home.file.".config/quickshell/config.json".source = ./quickshell/settings.json;
+  home.file.".config/quickshell/main.qml".source = ./quickshell/main.qml;
+  home.file.".config/quickshell/panel.qml".source = ./quickshell/panel.qml;
 
   # activation: enable the user service if systemd user is active
   home.activation.quickshell-enable = ''
