@@ -7,40 +7,45 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      
       - name: Install Nix (for flakes)
         uses: cachix/install-nix-action@v22
         with:
           extra_nix_config: 'experimental-features = nix-command flakes'
+          nix_path: nixpkgs=channel:nixos-unstable
 
       - name: Show Nix version
         run: nix --version
 
-      - name: Ensure Nix >= 2.18 (installer fallback, non-interactive)
+      - name: Ensure Nix >= 2.18 (upgrade if needed)
         run: |
           set -euo pipefail
-          echo "nix before: $(nix --version 2>/dev/null || echo 'none')"
-          if command -v nix >/dev/null 2>&1; then
-            ver=$(nix --version | awk '{print $3}' | cut -d. -f1-2)
-          else
-            ver=0
-          fi
-          req="2.18"
-          if [ "$(printf '%s\n%s' "$req" "$ver" | sort -V | head -n1)" = "$req" ]; then
-            echo "Nix version OK: $ver"
-          else
-            echo "Upgrading/installing Nix to meet requirement >= $req (non-interactive)"
-            curl -L https://nixos.org/nix/install | sh -s -- --no-daemon --yes --no-channel-update
-            # source profile if present, otherwise add profile bin to PATH
-            if [[ -f "$HOME/.nix-profile/etc/profile.d/nix.sh" ]]; then
-              . "$HOME/.nix-profile/etc/profile.d/nix.sh"
-            else
-              export PATH="$HOME/.nix-profile/bin:$PATH"
+          echo "Current Nix version: $(nix --version)"
+          
+          # Extract version number
+          current_version=$(nix --version | grep -oP '\d+\.\d+' | head -1)
+          required_version="2.18"
+          
+          # Compare versions
+          if [ "$(printf '%s\n' "$required_version" "$current_version" | sort -V | head -n1)" != "$required_version" ]; then
+            echo "Nix version $current_version is too old. Upgrading to latest..."
+            
+            # Install latest Nix using official installer
+            curl -L https://nixos.org/nix/install | sh -s -- --no-daemon --yes
+            
+            # Reload Nix profile
+            if [ -f "$HOME/.nix-profile/etc/profile.d/nix.sh" ]; then
+              source "$HOME/.nix-profile/etc/profile.d/nix.sh"
             fi
+            
+            echo "Updated Nix version: $(nix --version)"
+          else
+            echo "Nix version is sufficient: $current_version >= $required_version"
           fi
-          echo "nix after: $(nix --version)"
 
       - name: Run flake check
         run: nix flake check
+        
       - name: Run duplicate-package check
         run: bash ./scripts/check-duplicates.sh
 
