@@ -58,6 +58,11 @@ rust=1.72
 - `donut shell` lê `.donutrc` para ativar as versões definidas para o projeto.
 - Recomenda-se commitar os arquivos por‑projeto (`.nvmrc`, `.python-version`, `rust-toolchain`) e manter `.donutrc` local.
 
+Vicinae (launcher)
+- `vicinae` foi adicionado aos `home.packages` e o atalho `Super+Space` abre o launcher no Hyprland.
+- Se preferir a integração completa (módulo Home‑Manager + Cachix), adicione o flake `vicinae` conforme a documentação oficial: https://docs.vicinae.com/nixos
+
+
 Feedback / extensões possíveis
 - Posso adicionar detecção automática de ferramentas comuns (ex.: `eslint`, `prettier`, `ruff`) e instalá‑las ao rodar `donut init`.
 - Posso também adicionar testes/CI para as rotinas `global add/remove` se desejar.

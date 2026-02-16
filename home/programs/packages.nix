@@ -12,6 +12,7 @@
     vscode
     discord
     htop
+    vicinae
     # add your user packages here
   ];
 } 

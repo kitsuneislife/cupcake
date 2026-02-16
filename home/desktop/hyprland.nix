@@ -25,6 +25,7 @@
         "SUPER, T, exec, kitty"
         "SUPER, W, exec, microsoft-edge"
         "SUPER, C, exec, code"
+        "SUPER, SPACE, exec, vicinae"
         "SUPER, Esc, exit"
 
         # Workspace switching (SUPER + number)
