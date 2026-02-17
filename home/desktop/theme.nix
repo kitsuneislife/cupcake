@@ -4,6 +4,7 @@
   # Pacotes do tema
   home.packages = with pkgs; [
     inter
+    material-symbols
     libsForQt5.qt5ct
     qt6Packages.qt6ct
   ];
@@ -57,6 +58,7 @@
     XCURSOR_THEME = "WhiteSur-cursors";
     XCURSOR_SIZE = "24";
     QT_QPA_PLATFORMTHEME = "qt5ct";
+    XDG_DATA_DIRS = "/etc/profiles/per-user/${config.home.username}/share:$XDG_DATA_DIRS";
   };
 
   # Configuração Qt
@@ -70,5 +72,13 @@
     [Appearance]
     icon_theme = WhiteSur
     style = Fusion
+  '';
+
+  home.activation.updateIconCache = config.lib.dag.entryAfter ["writeBoundary"] ''
+    if [ ! -f $HOME/.local/share/icons/WhiteSur/icon-theme.cache ]; then
+      mkdir -p $HOME/.local/share/icons/WhiteSur
+      cp -r ${pkgs.whitesur-icon-theme}/share/icons/WhiteSur/. $HOME/.local/share/icons/WhiteSur/
+      ${pkgs.gtk3}/bin/gtk-update-icon-cache -f -t $HOME/.local/share/icons/WhiteSur
+    fi
   '';
 }

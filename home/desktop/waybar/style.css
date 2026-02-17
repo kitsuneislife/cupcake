@@ -1,32 +1,77 @@
+
+@define-color background rgba(43, 43, 43, 0.85);
+
 * {
     border: none;
     border-radius: 0;
-    font-family: "Inter", "Font Awesome 6 Free", sans-serif;
+    font-family: "Inter", sans-serif;
     font-size: 13px;
     min-height: 0;
 }
 
 window#waybar {
-    background: rgba(30, 30, 46, 0.85); /* Dark blur background */
+    background: transparent;
+    color: #ffffff;
+}
+
+window#waybar.default {
+    background: rgba(43, 43, 43, 0.85); /* Dark blur background */
     color: #ffffff;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+#workspaces {
+    background-color: @background;
+    border-radius: 24px 0 0 24px;
+    margin-left: 16px;
+}
+
 #workspaces button {
-    padding: 0 10px;
+    padding: 0 8px;
     background: transparent;
-    color: #ffffff;
-    border-top: 2px solid transparent;
-    border-bottom: 2px solid transparent;
+    color: rgba(255, 255, 255, 0.4);
+    border: none;
+    font-size: 16px;
 }
 
 #workspaces button.active {
     color: #ffffff;
-    border-bottom: 2px solid #ffffff;
 }
 
 #workspaces button:hover {
     background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+#mpris {
+    background-image: linear-gradient(to right, rgba(30, 102, 245, 0.6), rgba(114, 135, 253, 0.6));
+    padding: 0 12px;
+    border-radius: 0 24px 24px 0;
+}
+
+#window {
+    background-color: @background;
+    border-radius: 24px;
+    margin-left: 10px;
+    padding: 0 10px;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 500;
+}
+
+#tray {
+    background-color: @background;
+    border-radius: 24px 0 0 24px;
+    padding: 0 12px;
+    margin: 0 8px;
+}
+
+#network, #pulseaudio, #backlight, #battery {
+    background-color: @background;
+}
+
+#clock {
+    background-color: @background;
+    border-radius: 0 24px 24px 0;
 }
 
 #clock,
@@ -44,12 +89,21 @@ window#waybar {
 #idle_inhibitor,
 #scratchpad,
 #mpd {
-    padding: 0 10px;
-    margin: 0 4px;
+    font-family: "Material Symbols Outlined", "Inter", sans-serif;
+    font-size: 24px;
+    padding: 0 8px;
     color: #ffffff;
 }
 
-#clock {
+#network {
+    border-radius: 24px 0 0 24px;
+    padding: 0 0 0 12px;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+#backlight {
+    font-size: 16px;
     font-weight: bold;
 }
 
@@ -68,6 +122,14 @@ window#waybar {
     animation-timing-function: linear;
     animation-iteration-count: infinite;
     animation-direction: alternate;
+}
+
+#clock {
+    font-family: "Inter", sans-serif;
+    font-size: 13px;
+    font-weight: bold;
+    padding: 0 12px;
+    margin-right: 16px;
 }
 
 @keyframes blink {

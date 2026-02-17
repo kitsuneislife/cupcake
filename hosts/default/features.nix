@@ -19,5 +19,16 @@
   services.openssh.enable = true;
   hardware.bluetooth.enable = false;
 
+  # Audio
+  hardware.pulseaudio.enable = false;
+  services.pipewire.enable = true;
+  services.pipewire.alsa.enable = true;
+  services.pipewire.alsa.support32Bit = true;
+  services.pipewire.pulse.enable = true;
+  services.pipewire.jack.enable = true;
+
+  # Brightness control
+  programs.light.enable = true;
+
   # Add new `.enable` lines here — `eclair list` will show them automatically.
 }

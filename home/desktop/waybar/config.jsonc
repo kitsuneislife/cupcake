@@ -1,75 +1,114 @@
 {
     "layer": "top",
     "position": "top",
-    "height": 34,
-    "spacing": 4,
+    "margin-top": 8,
+    "height": 16,
+    "spacing": 0,
     "modules-left": [
         "hyprland/workspaces",
-        "tray"
+        "mpris"
     ],
     "modules-center": [
-        "clock"
+        "hyprland/window"
     ],
     "modules-right": [
+        "tray",
         "network",
         "pulseaudio",
-        "battery"
+        "backlight",
+        "battery",
+        "clock"
     ],
+    "hyprland/window": {
+        "format": "{}",
+        "max-length": 50,
+        "separate-outputs": true,
+        "rewrite": {
+            "^(.*) — (.*)$": "$2",
+            "^(.*) - (.*)$": "$2",
+            "": "Desktop"
+        }
+    },
     "hyprland/workspaces": {
         "disable-scroll": true,
         "all-outputs": true,
-        "format": "{name}"
+        "format": "{icon}",
+        "persistent-workspaces": {
+            "*": 4
+        },
+        "format-icons": {
+            "active": "✦",
+            "default": "○"
+        }
     },
-    "clock": {
-        "format": "{:%H:%M}",
-        "tooltip-format": "<big>{:%Y %B}</big>\n<tt>{calendar}</tt>"
+    "mpris": {
+        "format": "{status_icon}    ♫ {dynamic}",
+        "dynamic-len": 40,
+        "status-icons": {
+            "playing": "▶",
+            "paused": "⏸",
+            "stopped": ""
+        },
+        "dynamic-order": ["title", "artist"]
+    },
+    "tray": {
+        "icon-size": 18,
+        "spacing": 4
+    },
+    "network": {
+        "format-wifi": "wifi",
+        "format-ethernet": "lan",
+        "tooltip-format": "{ifname} via {gwaddr}",
+        "format-linked": "{ifname} (No IP)",
+        "format-disconnected": "globe_2_cancel",
+        "format-alt": "{ifname}: {ipaddr}/{cidr}"
+    },
+    "pulseaudio": {
+        "format": "{icon}",
+        "tooltip-format": "{volume}%",
+        "format-muted": "volume_off",
+        "format-icons": {
+            "headphone": "headphones",
+            "hands-free": "",
+            "headset": "headphones",
+            "phone": "",
+            "portable": "",
+            "car": "",
+            "default": ["volume_off", "volume_down", "volume_up"]
+        },
+        "on-click": "pavucontrol"
+    },
+    "backlight": {
+        "device": "intel_backlight",
+        "format": "{icon}",
+        "tooltip-format": "{percent}%",
+        "format-icons": [
+            "light_mode"
+        ],
+        "on-scroll-up": "brightnessctl set +10%",
+        "on-scroll-down": "brightnessctl set 10%-"
     },
     "battery": {
         "states": {
             "warning": 30,
             "critical": 15
         },
-        "format": "{icon} {capacity}%",
-        "format-charging": " {capacity}%",
-        "format-plugged": " {capacity}%",
+        "format": "{icon}",
+        "format-charging": "battery_android_frame_bolt",
+        "format-plugged": "battery_android_frame_bolt",
         "format-icons": [
-            "",
-            "",
-            "",
-            "",
-            ""
+            "battery_android_alert",
+            "battery_android_frame_1",
+            "battery_android_frame_2",
+            "battery_android_frame_3",
+            "battery_android_frame_4",
+            "battery_android_frame_5",
+            "battery_android_frame_6",
+            "battery_android_frame_full"
         ]
     },
-    "network": {
-        "format-wifi": " {essid}",
-        "format-ethernet": " Connected",
-        "tooltip-format": "{ifname} via {gwaddr}",
-        "format-linked": "{ifname} (No IP)",
-        "format-disconnected": "⚠ Disconnected",
-        "format-alt": "{ifname}: {ipaddr}/{cidr}"
-    },
-    "pulseaudio": {
-        "format": "{icon} {volume}%",
-        "format-bluetooth": "{icon} {volume}%",
-        "format-bluetooth-muted": " {icon}",
-        "format-muted": "",
-        "format-icons": {
-            "headphone": "",
-            "hands-free": "",
-            "headset": "",
-            "phone": "",
-            "portable": "",
-            "car": "",
-            "default": [
-                "",
-                "",
-                ""
-            ]
-        },
-        "on-click": "pavucontrol"
-    },
-    "tray": {
-        "icon-size": 18,
-        "spacing": 10
+    "clock": {
+        "format": "{:%a %b %e %H:%M}",
+        "tooltip-format": "<big>{:%Y %B}</big>\n<tt>{calendar}</tt>"
     }
 }

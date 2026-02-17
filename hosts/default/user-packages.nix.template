@@ -6,6 +6,10 @@
   # insert the package above the marker line below.
 
   # example packages (use strings)
+  "brightnessctl"
+  "pipewire"
+  "playerctl"
+  "kitty"
   "wget"
   "git"
   # ---------------------------
