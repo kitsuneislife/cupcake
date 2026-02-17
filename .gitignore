@@ -2,12 +2,11 @@
 !README.md
 !docs/*.md
 
-# hardware-configuration.nix
-# hosts/default/user-packages.nix
-# home/programs/packages.nix
-# local override (user-specific) — keep out of the repo
-# local.nix
-# Comentado pq o nix chora quando eles tao ignorados xD
+hardware-configuration.nix
+hosts/default/user-packages.nix
+home/programs/packages.nix
+local.nix
+# cuidado q o nix chora quando eles tao ignorados xD
 
 # ignore eclair/home-manager backups
 *.bak-*
