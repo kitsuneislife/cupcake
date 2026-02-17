@@ -1,13 +1,74 @@
 { config, pkgs, ... }:
 
 {
-  # Home-module: home/desktop/theme.nix
-  # Purpose: GTK/Qt/icon/wallpaper theme settings for the user.
-  # How to use: add theme packages to `home.packages` and set xdg config files.
-  # Example:
-  #
-  # home.packages = with pkgs; [ adwaita-gtk-theme papirus-icon-theme ];
-  # xdg.configFile."gtk-3.0/settings.ini".text = ''[Settings]\ngtk-theme-name = Adwaita'';
+  # Pacotes do tema
+  home.packages = with pkgs; [
+    inter
+    libsForQt5.qt5ct
+    qt6Packages.qt6ct
+  ];
 
-  # Document-only stub — add concrete theme config when ready.
+  # GTK
+  gtk = {
+    enable = true;
+    
+    theme = {
+      name = "WhiteSur-Dark";
+      package = pkgs.whitesur-gtk-theme;
+    };
+    
+    iconTheme = {
+      name = "WhiteSur";
+      package = pkgs.whitesur-icon-theme;
+    };
+    
+    cursorTheme = {
+      name = "WhiteSur-cursors";
+      package = pkgs.whitesur-cursors;
+      size = 24;
+    };
+    
+    font = {
+      name = "Inter";
+      size = 11;
+    };
+    
+    gtk3.extraConfig.gtk-application-prefer-dark-theme = 1;
+  };
+
+  # Cursor
+  home.pointerCursor = {
+    gtk.enable = true;
+    x11.enable = true;
+    name = "WhiteSur-cursors";
+    package = pkgs.whitesur-cursors;
+    size = 24;
+  };
+
+  # Qt
+  qt = {
+    enable = true;
+    platformTheme.name = "qtct";
+    style.name = "Fusion";
+  };
+
+  # Variáveis de ambiente
+  home.sessionVariables = {
+    XCURSOR_THEME = "WhiteSur-cursors";
+    XCURSOR_SIZE = "24";
+    QT_QPA_PLATFORMTHEME = "qt5ct";
+  };
+
+  # Configuração Qt
+  xdg.configFile."qt5ct/qt5ct.conf".text = ''
+    [Appearance]
+    icon_theme = WhiteSur
+    style = Fusion
+  '';
+
+  xdg.configFile."qt6ct/qt6ct.conf".text = ''
+    [Appearance]
+    icon_theme = WhiteSur
+    style = Fusion
+  '';
 }

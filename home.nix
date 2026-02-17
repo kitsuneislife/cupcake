@@ -13,7 +13,7 @@
     (if builtins.pathExists ./home/programs/packages.nix then ./home/programs/packages.nix else ./home/programs/packages.nix.template)
     ./home/desktop/vicinae.nix
     ./home/desktop/hyprland.nix
-    ./home/desktop/quickshell.nix
+    ./home/desktop/waybar.nix
     ./home/desktop/theme.nix
   ];
 

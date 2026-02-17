@@ -2,14 +2,15 @@
 !README.md
 !docs/*.md
 
-hosts/default/user-packages.nix
-home/programs/packages.nix
+# hardware-configuration.nix
+# hosts/default/user-packages.nix
+# home/programs/packages.nix
+# local override (user-specific) — keep out of the repo
+# local.nix
+# Comentado pq o nix chora quando eles tao ignorados xD
 
 # ignore eclair/home-manager backups
 *.bak-*
-
-# local override (user-specific) — keep out of the repo
-local.nix
 
 # Ignore per-project runtime/version files and virtualenvs (donut / language managers)
 .nvmrc
@@ -17,4 +18,3 @@ local.nix
 rust-toolchain
 .donutrc
 .venv/
-

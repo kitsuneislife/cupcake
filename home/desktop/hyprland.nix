@@ -20,9 +20,15 @@
         kb_variant = "abnt2";
       };
 
+      env = [
+        "XCURSOR_THEME,WhiteSur-cursors"
+        "XCURSOR_SIZE,24"
+        "GTK_THEME,WhiteSur-Dark"
+      ];
+
       # Vicinae server is managed via a dedicated systemd user service (see `home/desktop/vicinae.nix`).
       exec = [
-        # kept intentionally empty — service started by systemd
+        "vicinae server &"
       ];
 
       bind = [
