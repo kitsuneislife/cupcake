@@ -25,7 +25,7 @@
           {
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
-            home-manager.extraSpecialArgs = { inherit inputs; };  # <-- ADICIONE ESTA LINHA
+            home-manager.extraSpecialArgs = { inherit inputs localCfg; };  # <-- ADICIONE ESTA LINHA
             # Backup existing files that would be clobbered by Home Manager
             home-manager.backupFileExtension = ".bak";
             # Use the computed `localCfg` (from outputs let-binding) to set the home-manager user
