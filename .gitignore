@@ -6,7 +6,8 @@ hardware-configuration.nix
 hosts/default/user-packages.nix
 home/programs/packages.nix
 local.nix
-# cuidado q o nix chora quando eles tao ignorados xD
+# cuidado q o nix chora quando eles tao ignorados xD qualquer coisa tem q usar isso vv
+# git add --intent-to-add -f hardware-configuration.nix hosts/default/user-packages.nix home/programs/packages.nix local.nix
 
 # ignore eclair/home-manager backups
 *.bak-*
