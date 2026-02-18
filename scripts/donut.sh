@@ -206,6 +206,17 @@ resolve_latest_version() {
       # For rust, 'latest' usually means 'stable' channel
       echo "stable"
       ;;
+    lua)
+      # luaver install -l -> lists available versions
+      if command -v luaver >/dev/null 2>&1; then
+         local v
+         # luaver list-remote output might vary, assuming list of versions. picking last one.
+         v=$(luaver list-remote 2>/dev/null | grep -E "^5\." | tail -n1 || echo "latest")
+         echo "$v"
+      else
+         echo "latest"
+      fi
+      ;;
     *)
       echo "latest"
       ;;
@@ -312,13 +323,48 @@ use_rust() {
   bash -lic "rustup default ${v} && exec \$SHELL"
 }
 
+install_lua() {
+  local v="$1"
+  require_manager luaver luaver || return 1
+  if [[ "$DRY_RUN" -eq 1 ]]; then info "(dry-run) luaver install ${v}"; return 0; fi
+  luaver install "$v" || true
+  success "Lua ${v} installed via luaver"
+}
+
+init_lua() {
+  local v="$1"
+  install_lua "$v" || return 1
+  echo "$v" > .lua-version
+  set_donut_value lua "$v"
+  
+  # Ensure luarocks is available
+  if ! command -v luarocks >/dev/null 2>&1; then
+    warn "luarocks não encontrado. Recomendado instalar via luaver (p.ex. 'luaver install-luarocks <version>') ou pelo sistema."
+  else
+    success "luarocks detectado"
+  fi
+  
+  success "Projeto inicializado para lua ${v}"
+}
+
+use_lua() {
+  local v="$1"
+  require_manager luaver luaver || return 1
+  if [[ "$DRY_RUN" -eq 1 ]]; then info "(dry-run) luaver use ${v}"; return 0; fi
+  luaver use "$v"
+  success "lua version set to ${v}"
+  bash -lic "luaver use ${v} && exec \$SHELL"
+}
+
 list_installed() {
   case "$1" in
     node)
       if command -v nvm >/dev/null 2>&1; then nvm ls || true; elif command -v fnm >/dev/null 2>&1; then fnm list || true; else warn "nenhum gerenciador de node encontrado"; fi ;;
     python) pyenv versions || true ;;
+    python) pyenv versions || true ;;
     rust) rustup toolchain list || true ;;
-    *) echo "Supported: node, python, rust" ;;
+    lua) luaver list || true ;;
+    *) echo "Supported: node, python, rust, lua" ;;
   esac
 }
 
@@ -328,7 +374,9 @@ status() {
   echo -e "${BOLD}Detected files:${RESET}"
   [[ -f .nvmrc ]] && echo "  .nvmrc -> $(cat .nvmrc)"
   [[ -f .python-version ]] && echo "  .python-version -> $(cat .python-version)"
+  [[ -f .python-version ]] && echo "  .python-version -> $(cat .python-version)"
   [[ -f rust-toolchain ]] && echo "  rust-toolchain -> $(cat rust-toolchain)"
+  [[ -f .lua-version ]] && echo "  .lua-version -> $(cat .lua-version)"
 }
 
 uninstall_runtime() {
@@ -354,6 +402,11 @@ uninstall_runtime() {
       if [[ "$DRY_RUN" -eq 1 ]]; then info "(dry-run) rustup toolchain remove ${v}"; return 0; fi
       rustup toolchain remove "$v" || true
       success "rust ${v} removed (if existed)" ;;
+    lua)
+      require_manager luaver luaver || return 1
+      if [[ "$DRY_RUN" -eq 1 ]]; then info "(dry-run) luaver uninstall ${v}"; return 0; fi
+      luaver uninstall "$v" || true
+      success "lua ${v} removed (if existed)" ;;
     *) error "unknown runtime: $r"; return 1 ;;
   esac
 }
@@ -366,17 +419,17 @@ ${CYAN}✦ donut${RESET} — runtime manager helper
 Usage: donut <command> [runtime] [version]
 
 Commands:
-  install <runtime> <version>   install runtime version (nvm/pyenv/rustup)
+  install <runtime> <version>   install runtime version (nvm/pyenv/rustup/luaver)
   init    <runtime> <version>   create project files + install
   use     <runtime> <version>   set version for current shell / project
   shell                         open subshell with project versions active
   list <runtime>                list installed versions for runtime
   status                        show project donut status
   uninstall <runtime> <version> remove installed version
-  global <add|remove> <runtime> <pkg>  install/remove global CLI via pnpm/pipx/cargo
+  global <add|remove> <runtime> <pkg>  install/remove global CLI via pnpm/pipx/cargo/luarocks
   help                          show this help
 
-Supported runtimes: node, python, rust
+Supported runtimes: node, python, rust, lua
 Special versions:
   latest  (resolves to stable/latest available)
 
@@ -395,6 +448,7 @@ case "$COMMAND" in
       node) install_node "$RESOLVED_VERSION";;
       python) install_python "$RESOLVED_VERSION";;
       rust) install_rust "$RESOLVED_VERSION";;
+      lua) install_lua "$RESOLVED_VERSION";;
       *) error "runtime não suportado"; exit 1;;
     esac
     ;;
@@ -407,6 +461,7 @@ case "$COMMAND" in
       node) init_node "$RESOLVED_VERSION";;
       python) init_python "$RESOLVED_VERSION";;
       rust) init_rust "$RESOLVED_VERSION";;
+      lua) init_lua "$RESOLVED_VERSION";;
       *) error "runtime não suportado"; exit 1;;
     esac
     ;;
@@ -419,6 +474,7 @@ case "$COMMAND" in
       node) use_node "$RESOLVED_VERSION";;
       python) use_python "$RESOLVED_VERSION";;
       rust) use_rust "$RESOLVED_VERSION";;
+      lua) use_lua "$RESOLVED_VERSION";;
       *) error "runtime não suportado"; exit 1;;
     esac
     ;;
@@ -430,8 +486,9 @@ case "$COMMAND" in
     nd=$(get_donut_value node) || true
     pd=$(get_donut_value python) || true
     rd=$(get_donut_value rust) || true
-    info "Starting shell with project runtimes: node=${nd:-n/a} python=${pd:-n/a} rust=${rd:-n/a}"
-    bash -lic "$( [[ -n "$nd" ]] && echo "nvm use $nd >/dev/null 2>&1 || true;" ) $( [[ -n "$pd" ]] && echo "pyenv shell $pd >/dev/null 2>&1 || true;" ) $( [[ -n "$rd" ]] && echo "rustup default $rd >/dev/null 2>&1 || true;" ) exec \$SHELL"
+    ld=$(get_donut_value lua) || true
+    info "Starting shell with project runtimes: node=${nd:-n/a} python=${pd:-n/a} rust=${rd:-n/a} lua=${ld:-n/a}"
+    bash -lic "$( [[ -n "$nd" ]] && echo "nvm use $nd >/dev/null 2>&1 || true;" ) $( [[ -n "$pd" ]] && echo "pyenv shell $pd >/dev/null 2>&1 || true;" ) $( [[ -n "$rd" ]] && echo "rustup default $rd >/dev/null 2>&1 || true;" ) $( [[ -n "$ld" ]] && echo "luaver use $ld >/dev/null 2>&1 || true;" ) exec \$SHELL"
     ;;
 
   list)
@@ -499,6 +556,17 @@ case "$COMMAND" in
           [[ "$DRY_RUN" -eq 1 ]] && info "(dry-run) cargo install ${pkg}" || cargo install "$pkg"
         else
           [[ "$DRY_RUN" -eq 1 ]] && info "(dry-run) cargo uninstall ${pkg}" || cargo uninstall "$pkg" || true
+        fi
+        ;;
+      lua)
+        if command -v luarocks >/dev/null 2>&1; then
+          if [[ "$op" == "add" ]]; then
+               [[ "$DRY_RUN" -eq 1 ]] && info "(dry-run) luarocks install ${pkg}" || luarocks install "$pkg"
+          else
+               [[ "$DRY_RUN" -eq 1 ]] && info "(dry-run) luarocks remove ${pkg}" || luarocks remove "$pkg" || true
+          fi
+        else
+          warn "luarocks não disponível"
         fi
         ;;
       *) error "runtime não suportado para global: $rt"; exit 1;;
