@@ -58,6 +58,7 @@
     # Misc
     "wget" = "system";
   };
+    "vesktop" = "home";
     "antigravity" = "home";
     "htop" = "home";
 }
