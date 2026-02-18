@@ -233,18 +233,36 @@ lint_package() {
     fi
   fi
 
-  # parse first column as attribute/name for suggestions
-  mapfile -t lines < <(printf "%s\n" "$out" | sed '/^$/d' | sed -n '1,8p')
-  # extract attribute names (first token)
+  # parse output (limit to top 200 results to avoid massive lists)
+  # strip ANSI color codes using sed
+  mapfile -t lines < <(printf "%s\n" "$out" | sed 's/\x1b\[[0-9;]*m//g' | sed '/^$/d' | head -n 200)
+
   declare -a attrs
+  declare -a clean_lines
+  
   for l in "${lines[@]}"; do
-    a=$(echo "$l" | awk '{print $1}')
+    # remove "* " prefix if present
+    clean_l=$(echo "$l" | sed 's/^\* //')
+    clean_lines+=("$clean_l")
+    
+    # extract attribute (first token)
+    a=$(echo "$clean_l" | awk '{print $1}')
     attrs+=("$a")
   done
 
   # look for exact match
-  for a in "${attrs[@]}"; do
+  for i in "${!attrs[@]}"; do
+    a="${attrs[$i]}"
+    # strict exact match?
     if [[ "$a" == "$pkg" ]]; then
+      PKG_ATTR="$a"; return 0
+    fi
+    
+    # attributes often look like: legacyPackages.x86_64-linux.package_name
+    # we want to match "package_name" against input "$pkg"
+    # remove "legacyPackages.*." prefix
+    stripped_a=$(echo "$a" | sed -E 's/^legacyPackages\.[^.]+\.//')
+    if [[ "$stripped_a" == "$pkg" ]]; then
       PKG_ATTR="$a"; return 0
     fi
   done
@@ -258,7 +276,9 @@ lint_package() {
   if [[ -t 0 && -t 1 ]]; then
     echo "Multiple matches found for '$pkg' — choose one (or 0 to cancel):"
     local i=1
-    for l in "${lines[@]}"; do
+    # show first 20 max to avoid scrolling off screen
+    for l in "${clean_lines[@]}"; do
+      if [[ $i -gt 20 ]]; then echo "  ... (andmore)"; break; fi
       echo "  $i) $l"
       i=$((i+1))
     done
@@ -274,7 +294,8 @@ lint_package() {
     fi
     error "Aborted by user"; return 2
   else
-    echo "Multiple matches for '$pkg':"; printf '%s\n' "${lines[@]}"
+    echo "Multiple matches for '$pkg':"
+    printf '%s\n' "${clean_lines[@]}" | head -n 20
     error "Ambiguous package name; run interactively or use --no-validate to skip validation."; return 2
   fi
 }

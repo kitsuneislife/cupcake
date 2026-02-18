@@ -58,6 +58,8 @@
     # Misc
     "wget" = "system";
   };
+    "prismlauncher" = "home";
+    "love" = "home";
     "vesktop" = "home";
     "antigravity" = "home";
     "htop" = "home";
