@@ -5,7 +5,7 @@ Resumo
 - Garante que, quando possível, *os gerenciadores globais de pacotes* sejam usados para instalar CLIs e ferramentas (ex.: `pnpm` para Node, `pipx` para Python, `cargo` para Rust).
 
 Principais funcionalidades
-- Instalar / garantir versões de runtime: `donut install|init|use` (nvm/fnm, pyenv, rustup)
+- Instalar / garantir versões de runtime: `donut install|init|use` (nvm/fnm, pyenv, rustup). Use `latest` para a versão mais recente (ou stable para Rust).
 - Criar arquivos por‑projeto: `.nvmrc`, `.python-version`, `rust-toolchain`
 - Ativar ambiente por‑projeto: `donut shell` (ativa as versões listadas em `.donutrc`)
 - Gerenciar ferramentas globais por runtime: `donut global add|remove <runtime> <pkg>`

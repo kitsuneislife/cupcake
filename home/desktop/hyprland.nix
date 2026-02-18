@@ -38,6 +38,7 @@
 
         "SUPER, Q, killactive"
         "SUPER, T, exec, kitty"
+        "SUPER, E, exec, nemo"
         "SUPER, W, exec, microsoft-edge"
         "SUPER, C, exec, code"
         "SUPER, Esc, exit"

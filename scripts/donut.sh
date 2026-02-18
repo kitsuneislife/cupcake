@@ -165,6 +165,53 @@ ensure_cargo_available() {
 }
 
 
+# --- Version Resolution ---
+resolve_latest_version() {
+  local runtime="$1"
+  local version="$2"
+
+  if [[ "$version" != "latest" ]]; then
+    echo "$version"
+    return 0
+  fi
+
+  case "$runtime" in
+    node)
+      local mgr
+      mgr=$(detect_node_manager) || { warn "nem nvm nem fnm disponíveis para resolver 'latest'"; echo "latest"; return 0; }
+      if [[ "$mgr" == "nvm" ]]; then
+        # nvm version-remote node returns something like v20.11.1
+        local v
+        v=$(nvm version-remote node 2>/dev/null || echo "latest")
+        echo "$v"
+      else
+        # fnm list-remote returns a long list; tail -n1 is usually the latest
+        local v
+        v=$(fnm list-remote 2>/dev/null | tail -n1 || echo "latest")
+        echo "$v"
+      fi
+      ;;
+    python)
+      # pyenv install --list -> filter for numeric only (no alpha/beta/rc/miniconda) -> sort -> tail
+      if command -v pyenv >/dev/null 2>&1; then
+         local v
+         # This regex tries to match standard versions like 3.12.1
+         v=$(pyenv install --list 2>/dev/null | grep -E "^\s*[0-9]+\.[0-9]+\.[0-9]+$" | tail -n1 | tr -d ' ' || echo "latest")
+         echo "$v"
+      else
+         echo "latest"
+      fi
+      ;;
+    rust)
+      # For rust, 'latest' usually means 'stable' channel
+      echo "stable"
+      ;;
+    *)
+      echo "latest"
+      ;;
+  esac
+}
+
 # --- Install / init / use implementations ---
 install_node() {
   local v="$1"
@@ -330,6 +377,8 @@ Commands:
   help                          show this help
 
 Supported runtimes: node, python, rust
+Special versions:
+  latest  (resolves to stable/latest available)
 
 Flags: --dry-run, --yes
 EOF
@@ -339,31 +388,37 @@ fi
 
 case "$COMMAND" in
   install)
-    if [[ -z "$RUNTIME" || -z "$VERSION" ]]; then echo "Usage: donut install <runtime> <version"; exit 1; fi
+    if [[ -z "$RUNTIME" || -z "$VERSION" ]]; then echo "Usage: donut install <runtime> <version>"; exit 1; fi
+    RESOLVED_VERSION=$(resolve_latest_version "$RUNTIME" "$VERSION")
+    [[ "$VERSION" == "latest" ]] && info "Resolved latest -> $RESOLVED_VERSION"
     case "$RUNTIME" in
-      node) install_node "$VERSION";;
-      python) install_python "$VERSION";;
-      rust) install_rust "$VERSION";;
+      node) install_node "$RESOLVED_VERSION";;
+      python) install_python "$RESOLVED_VERSION";;
+      rust) install_rust "$RESOLVED_VERSION";;
       *) error "runtime não suportado"; exit 1;;
     esac
     ;;
 
   init)
-    if [[ -z "$RUNTIME" || -z "$VERSION" ]]; then echo "Usage: donut init <runtime> <version"; exit 1; fi
+    if [[ -z "$RUNTIME" || -z "$VERSION" ]]; then echo "Usage: donut init <runtime> <version>"; exit 1; fi
+    RESOLVED_VERSION=$(resolve_latest_version "$RUNTIME" "$VERSION")
+    [[ "$VERSION" == "latest" ]] && info "Resolved latest -> $RESOLVED_VERSION"
     case "$RUNTIME" in
-      node) init_node "$VERSION";;
-      python) init_python "$VERSION";;
-      rust) init_rust "$VERSION";;
+      node) init_node "$RESOLVED_VERSION";;
+      python) init_python "$RESOLVED_VERSION";;
+      rust) init_rust "$RESOLVED_VERSION";;
       *) error "runtime não suportado"; exit 1;;
     esac
     ;;
 
   use)
-    if [[ -z "$RUNTIME" || -z "$VERSION" ]]; then echo "Usage: donut use <runtime> <version"; exit 1; fi
+    if [[ -z "$RUNTIME" || -z "$VERSION" ]]; then echo "Usage: donut use <runtime> <version>"; exit 1; fi
+    RESOLVED_VERSION=$(resolve_latest_version "$RUNTIME" "$VERSION")
+    [[ "$VERSION" == "latest" ]] && info "Resolved latest -> $RESOLVED_VERSION"
     case "$RUNTIME" in
-      node) use_node "$VERSION";;
-      python) use_python "$VERSION";;
-      rust) use_rust "$VERSION";;
+      node) use_node "$RESOLVED_VERSION";;
+      python) use_python "$RESOLVED_VERSION";;
+      rust) use_rust "$RESOLVED_VERSION";;
       *) error "runtime não suportado"; exit 1;;
     esac
     ;;
