@@ -15,6 +15,36 @@
     settings = {
       monitor = "eDP-1,1920x1080@144,0x0,1";
 
+      general = {
+        gaps_in=8;
+        gaps_out = 12;
+        border_size = 2;
+        # col.active_border = "rgba(33ccffee) rgba(00ff99ee) 45deg";
+        # col.inactive_border = "rgba(595959aa)";
+        resize_on_border = false;
+        allow_tearing = false;
+        layout = "dwindle";
+      };
+
+      decoration = {
+        rounding = 12;
+        rounding_power = 2;
+        active_opacity = 0.92;
+        inactive_opacity = 0.90;
+        shadow = {
+          enabled = true;
+          range = 4;
+          render_power = 3;
+          color = "rgba(1a1a1aee)";
+        };
+        blur = {
+          enabled = true;
+          size = 10;
+          passes = 1;
+          vibrancy = 0.1696;
+        };
+      };
+
       input = {
         kb_layout = "br";
         kb_variant = "abnt2";
@@ -65,6 +95,9 @@
         "SUPER SHIFT, 8, movetoworkspace, 8"
         "SUPER SHIFT, 9, movetoworkspace, 9"
       ];
+
+      misc.disable_hyprland_logo = "true";
+      source = "${config.home.homeDirectory}/.config/hypr/parfait.conf";
     };
   };
 }

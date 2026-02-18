@@ -20,7 +20,7 @@
   hardware.bluetooth.enable = false;
 
   # Audio
-  hardware.pulseaudio.enable = false;
+  services.pulseaudio.enable = false;
   services.pipewire.enable = true;
   services.pipewire.alsa.enable = true;
   services.pipewire.alsa.support32Bit = true;

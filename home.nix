@@ -15,6 +15,7 @@
     ./home/desktop/hyprland.nix
     ./home/desktop/waybar.nix
     ./home/desktop/theme.nix
+    ./home/desktop/swww.nix
   ];
 
   home.stateVersion = "25.11";
