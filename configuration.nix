@@ -14,6 +14,7 @@
     ./modules/users.nix
     ./modules/services.nix
     ./modules/desktop
+    ./modules/nvidia.nix
   ];
 
   # Keep the system state version at top-level
